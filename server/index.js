@@ -2,7 +2,10 @@ import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
 import connectDB from "./config/connectDB.js";
+
+// 🧩 Route Imports
 import authRoutes from "./routes/authRoutes.js";
+import eventRoutes from "./routes/eventRoutes.js"; // ✅ newly added
 
 dotenv.config();
 
@@ -16,7 +19,8 @@ app.use(express.json());
 connectDB();
 
 // 🌐 Routes
-app.use("/api/auth", authRoutes);
+app.use("/api/auth", authRoutes); // Authentication routes
+app.use("/api/events", eventRoutes); // ✅ Event-related routes
 
 // ✅ Test route
 app.get("/", (req, res) => {
