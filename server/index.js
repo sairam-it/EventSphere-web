@@ -5,7 +5,11 @@ import connectDB from "./config/connectDB.js";
 
 // 🧩 Route Imports
 import authRoutes from "./routes/authRoutes.js";
-import eventRoutes from "./routes/eventRoutes.js"; // ✅ newly added
+import eventRoutes from "./routes/eventRoutes.js"; 
+import registrationRoutes from "./routes/registrationRoutes.js";
+import teamRoutes from "./routes/teamRoutes.js";
+
+
 
 dotenv.config();
 
@@ -21,6 +25,9 @@ connectDB();
 // 🌐 Routes
 app.use("/api/auth", authRoutes); // Authentication routes
 app.use("/api/events", eventRoutes); // ✅ Event-related routes
+app.use("/api/registrations", registrationRoutes);
+app.use("/api/teams", teamRoutes); // 🏗️ Team-related routes
+
 
 // ✅ Test route
 app.get("/", (req, res) => {
