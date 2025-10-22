@@ -12,6 +12,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@types/axios": "^0.9.36",
+    "axios": "^1.12.2",
     "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
@@ -21,7 +23,7 @@
     "nanoid": "^5.1.6"
   },
   "devDependencies": {
-    "nodemon": "^3.1.10",
-    "nanoid": "^5.0.0"
+    "nanoid": "^5.0.0",
+    "nodemon": "^3.1.10"
   }
 }
