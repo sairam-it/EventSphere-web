@@ -30,7 +30,7 @@ const App = () => {
           <BrowserRouter>
             <div className="min-h-screen bg-gray-50">
               <Navbar />
-              <main>
+              <main className="pt-16">
                 <Routes>
                   <Route path="/" element={<Home />} />
                   <Route path="/login" element={<Login />} />

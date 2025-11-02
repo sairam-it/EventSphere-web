@@ -1,15 +1,27 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import { eventService } from '../services/eventService';
 import EventCard from '../components/EventCard';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 const Home = () => {
+  const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
+
+  const handleGetStarted = (e) => {
+    e.preventDefault();
+    if (isAuthenticated()) {
+      navigate('/create-event');
+    } else {
+      navigate('/login');
+    }
+  };
 
   useEffect(() => {
     fetchEvents();
@@ -82,10 +94,10 @@ const Home = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Hero Section */}
-      <div className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
+    <div className="bg-gray-50">
+      {/* Hero Section - Full Screen */}
+      <div className="min-h-screen bg-gradient-to-r from-blue-600 to-indigo-700 text-white flex items-center -mt-16 pt-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
           <div className="text-center">
             <h1 className="text-4xl md:text-6xl font-bold mb-6">
               Discover Amazing Events
@@ -94,18 +106,18 @@ const Home = () => {
               Connect, learn, and grow with events that matter to you
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link
-                to="/signup"
+              <button
+                onClick={handleGetStarted}
                 className="px-8 py-3 bg-white text-blue-600 font-semibold rounded-lg hover:bg-gray-100 transition-colors"
               >
                 Get Started
-              </Link>
-              <Link
-                to="#events"
+              </button>
+              <a
+                href="#events"
                 className="px-8 py-3 border-2 border-white text-white font-semibold rounded-lg hover:bg-white hover:text-blue-600 transition-colors"
               >
                 Browse Events
-              </Link>
+              </a>
             </div>
           </div>
         </div>
@@ -180,22 +192,6 @@ const Home = () => {
             </div>
           </>
         )}
-      </div>
-
-      {/* CTA Section */}
-      <div className="bg-gray-900 text-white py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl font-bold mb-4">Ready to create your own event?</h2>
-          <p className="text-xl text-gray-300 mb-8">
-            Join thousands of organizers who trust EventSphere to bring their communities together
-          </p>
-          <Link
-            to="/signup"
-            className="inline-block px-8 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            Start Organizing
-          </Link>
-        </div>
       </div>
     </div>
   );
