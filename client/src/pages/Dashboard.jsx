@@ -29,58 +29,23 @@ const Dashboard = () => {
       ]);
 
       if (hostedResponse.status === 'fulfilled') {
-        setHostedEvents(hostedResponse.value.events || []);
+        setHostedEvents(hostedResponse.value.events || hostedResponse.value.hostedEvents || []);
       } else {
-        // Mock data for hosted events
-        setHostedEvents([
-          {
-            _id: 'hosted-1',
-            title: 'My Tech Meetup',
-            description: 'A monthly meetup for tech enthusiasts in the area.',
-            type: 'individual',
-            status: 'upcoming',
-            startDate: '2024-11-20T18:00:00Z',
-            location: 'Community Center',
-            maxParticipants: 50,
-            currentParticipants: 23,
-            organizer: { name: user?.name, email: user?.email }
-          }
-        ]);
+        console.error('Failed to fetch hosted events:', hostedResponse.reason);
+        setHostedEvents([]);
       }
 
       if (participatedResponse.status === 'fulfilled') {
-        setParticipatedEvents(participatedResponse.value.events || []);
+        setParticipatedEvents(participatedResponse.value.events || participatedResponse.value.participatedEvents || []);
       } else {
-        // Mock data for participated events
-        setParticipatedEvents([
-          {
-            _id: 'participated-1',
-            title: 'React Workshop',
-            description: 'Learn React from the ground up with hands-on exercises.',
-            type: 'individual',
-            status: 'completed',
-            startDate: '2024-10-15T14:00:00Z',
-            location: 'Online',
-            maxParticipants: 100,
-            currentParticipants: 87,
-            organizer: { name: 'React Academy', email: 'info@reactacademy.com' }
-          },
-          {
-            _id: 'participated-2',
-            title: 'Hackathon 2024',
-            description: 'Build innovative solutions in 48 hours with your team.',
-            type: 'team',
-            status: 'completed',
-            startDate: '2024-09-28T09:00:00Z',
-            location: 'Tech Hub',
-            maxParticipants: 200,
-            currentParticipants: 156,
-            organizer: { name: 'Innovation Labs', email: 'hackathon@innovationlabs.com' }
-          }
-        ]);
+        console.error('Failed to fetch participated events:', participatedResponse.reason);
+        setParticipatedEvents([]);
       }
     } catch (err) {
+      console.error('Dashboard data fetch error:', err);
       setError('Failed to load dashboard data');
+      setHostedEvents([]);
+      setParticipatedEvents([]);
     } finally {
       setLoading(false);
     }

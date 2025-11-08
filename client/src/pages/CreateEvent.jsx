@@ -15,6 +15,9 @@ const CreateEvent = () => {
     endDate: '',
     location: '',
     maxParticipants: '',
+    maxTeamSize: '',
+    noOfGirls: '',
+    noOfBoys: '',
     requirements: '',
     tags: ''
   });
@@ -35,16 +38,33 @@ const CreateEvent = () => {
     try {
       // Process form data
       const eventData = {
-        ...formData,
-        maxParticipants: parseInt(formData.maxParticipants),
-        requirements: formData.requirements.split('\n').filter(req => req.trim()),
-        tags: formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag)
+        title: formData.title,
+        description: formData.description,
+        date: formData.startDate, // Backend expects 'date' field
+        location: formData.location,
+        category: formData.category || 'other',
+        maxParticipants: parseInt(formData.maxParticipants) || 0,
+        isTeamEvent: formData.type === 'team',
+        ...(formData.type === 'team' && {
+          maxTeamSize: parseInt(formData.maxTeamSize) || 5,
+          noOfGirls: parseInt(formData.noOfGirls) || 0,
+          noOfBoys: parseInt(formData.noOfBoys) || 0,
+        }),
+        ...(formData.requirements && {
+          requirements: formData.requirements.split('\n').filter(req => req.trim())
+        }),
+        ...(formData.tags && {
+          tags: formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag)
+        })
       };
 
       const response = await eventService.createEvent(eventData);
-      navigate(`/events/${response.event._id || response.event.id}`);
+      // Navigate to dashboard after successful creation
+      // Dashboard will automatically refresh and show the new event
+      navigate('/dashboard');
     } catch (err) {
-      setError(err.message || 'Failed to create event');
+      console.error('Create event error:', err);
+      setError(err.message || 'Failed to create event. Please check all required fields.');
     } finally {
       setLoading(false);
     }
@@ -129,6 +149,64 @@ const CreateEvent = () => {
                   Individual events allow single registrations, team events require team participation
                 </p>
               </div>
+
+              {/* Team Event Specific Fields */}
+              {formData.type === 'team' && (
+                <div className="space-y-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <h3 className="text-sm font-semibold text-gray-900">Team Event Settings</h3>
+                  
+                  <div>
+                    <label htmlFor="maxTeamSize" className="block text-sm font-medium text-gray-700 mb-1">
+                      Max Team Size *
+                    </label>
+                    <input
+                      type="number"
+                      id="maxTeamSize"
+                      name="maxTeamSize"
+                      required={formData.type === 'team'}
+                      min="2"
+                      value={formData.maxTeamSize}
+                      onChange={handleChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Enter maximum team size"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="noOfGirls" className="block text-sm font-medium text-gray-700 mb-1">
+                      No. of Girls *
+                    </label>
+                    <input
+                      type="number"
+                      id="noOfGirls"
+                      name="noOfGirls"
+                      required={formData.type === 'team'}
+                      min="0"
+                      value={formData.noOfGirls}
+                      onChange={handleChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Enter number of girls required"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="noOfBoys" className="block text-sm font-medium text-gray-700 mb-1">
+                      No. of Boys *
+                    </label>
+                    <input
+                      type="number"
+                      id="noOfBoys"
+                      name="noOfBoys"
+                      required={formData.type === 'team'}
+                      min="0"
+                      value={formData.noOfBoys}
+                      onChange={handleChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Enter number of boys required"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Date and Location */}

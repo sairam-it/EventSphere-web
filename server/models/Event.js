@@ -40,6 +40,26 @@ const eventSchema = new mongoose.Schema(
       type: Number,
       default: 5,
     },
+    noOfGirls: {
+      type: Number,
+      default: 0,
+    },
+    noOfBoys: {
+      type: Number,
+      default: 0,
+    },
+    requirements: {
+      type: [String],
+      default: [],
+    },
+    tags: {
+      type: [String],
+      default: [],
+    },
+    maxParticipants: {
+      type: Number,
+      default: 0,
+    },
   },
   { timestamps: true }
 );

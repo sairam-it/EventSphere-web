@@ -12,6 +12,23 @@ const EventDetails = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [registering, setRegistering] = useState(false);
+  const [showRegistrationModal, setShowRegistrationModal] = useState(false);
+  
+  // Individual registration form data
+  const [individualForm, setIndividualForm] = useState({
+    name: '',
+    email: '',
+    phone: ''
+  });
+  
+  // Team registration form data
+  const [teamForm, setTeamForm] = useState({
+    numberOfParticipants: 2,
+    participants: [
+      { name: '', email: '', phone: '' },
+      { name: '', email: '', phone: '' }
+    ]
+  });
 
   useEffect(() => {
     fetchEvent();
@@ -23,64 +40,138 @@ const EventDetails = () => {
       const response = await eventService.getEventById(id);
       setEvent(response.event);
     } catch (err) {
+      console.error('Failed to fetch event:', err);
       setError(err.message || 'Failed to fetch event details');
-      // Mock data for demo
-      setEvent({
-        _id: id,
-        title: 'Tech Innovation Summit 2024',
-        description: 'Join us for the biggest tech event of the year featuring keynotes from industry leaders, networking opportunities, and hands-on workshops. This comprehensive event will cover the latest trends in artificial intelligence, blockchain technology, cloud computing, and emerging technologies that are shaping the future of business.',
-        type: 'individual',
-        status: 'upcoming',
-        startDate: '2024-11-15T09:00:00Z',
-        endDate: '2024-11-15T17:00:00Z',
-        location: 'San Francisco Convention Center',
-        maxParticipants: 500,
-        currentParticipants: 234,
-        organizer: { 
-          name: 'TechCorp Events', 
-          email: 'events@techcorp.com',
-          bio: 'Leading technology event organizer with 10+ years of experience'
-        },
-        agenda: [
-          { time: '09:00 AM', activity: 'Registration & Welcome Coffee' },
-          { time: '10:00 AM', activity: 'Keynote: The Future of AI' },
-          { time: '11:30 AM', activity: 'Panel: Blockchain Revolution' },
-          { time: '01:00 PM', activity: 'Networking Lunch' },
-          { time: '02:30 PM', activity: 'Workshop: Cloud Architecture' },
-          { time: '04:00 PM', activity: 'Startup Pitch Session' },
-          { time: '05:00 PM', activity: 'Closing Remarks' }
-        ],
-        requirements: [
-          'Laptop required for workshops',
-          'Business casual attire',
-          'Valid ID for registration'
-        ],
-        tags: ['Technology', 'Innovation', 'Networking', 'AI', 'Blockchain']
-      });
     } finally {
       setLoading(false);
     }
   };
 
-  const handleRegister = async () => {
+  const handleRegisterClick = () => {
     if (!isAuthenticated()) {
+      // Show alert and redirect to login
+      alert('Please log in to register for this event.');
       navigate('/login', { state: { from: { pathname: `/events/${id}` } } });
+      return;
+    }
+    setShowRegistrationModal(true);
+    // Pre-fill individual form with user data if available
+    if (user) {
+      setIndividualForm({
+        name: user.name || '',
+        email: user.email || '',
+        phone: ''
+      });
+    }
+  };
+
+  const handleIndividualRegister = async (e) => {
+    e.preventDefault();
+    if (!individualForm.name || !individualForm.email || !individualForm.phone) {
+      setError('Please fill in all fields');
       return;
     }
 
     setRegistering(true);
+    setError('');
     try {
-      await eventService.registerForEvent(id, { userId: user.id });
+      await eventService.registerForEvent(id, {
+        type: 'individual',
+        name: individualForm.name,
+        email: individualForm.email,
+        phone: individualForm.phone
+      });
+      
       setEvent(prev => ({
         ...prev,
-        currentParticipants: prev.currentParticipants + 1
+        currentParticipants: (prev.currentParticipants || prev.participantsCount || 0) + 1
       }));
+      setShowRegistrationModal(false);
+      setIndividualForm({ name: '', email: '', phone: '' });
       alert('Successfully registered for the event!');
+      // Refresh event data
+      fetchEvent();
     } catch (err) {
-      alert(err.message || 'Failed to register for event');
+      setError(err.message || 'Failed to register for event');
     } finally {
       setRegistering(false);
     }
+  };
+
+  const handleTeamRegister = async (e) => {
+    e.preventDefault();
+    
+    // Validate all participants have required fields
+    const isValid = teamForm.participants.every(p => p.name && p.email && p.phone);
+    if (!isValid) {
+      setError('Please fill in all participant details');
+      return;
+    }
+
+    if (teamForm.numberOfParticipants > (event?.maxTeamSize || 5)) {
+      setError(`Team size cannot exceed ${event?.maxTeamSize || 5} members`);
+      return;
+    }
+
+    setRegistering(true);
+    setError('');
+    try {
+      await eventService.registerForEvent(id, {
+        type: 'team',
+        numberOfParticipants: teamForm.numberOfParticipants,
+        participants: teamForm.participants.slice(0, teamForm.numberOfParticipants)
+      });
+      
+      setEvent(prev => ({
+        ...prev,
+        currentParticipants: (prev.currentParticipants || prev.participantsCount || 0) + teamForm.numberOfParticipants
+      }));
+      setShowRegistrationModal(false);
+      setTeamForm({
+        numberOfParticipants: 2,
+        participants: [
+          { name: '', email: '', phone: '' },
+          { name: '', email: '', phone: '' }
+        ]
+      });
+      alert('Successfully registered team for the event!');
+      // Refresh event data
+      fetchEvent();
+    } catch (err) {
+      setError(err.message || 'Failed to register team for event');
+    } finally {
+      setRegistering(false);
+    }
+  };
+
+  const handleParticipantCountChange = (count) => {
+    const numCount = parseInt(count);
+    if (numCount < 2 || numCount > (event?.maxTeamSize || 10)) return;
+    
+    setTeamForm(prev => {
+      const newParticipants = [...prev.participants];
+      // Add or remove participants as needed
+      while (newParticipants.length < numCount) {
+        newParticipants.push({ name: '', email: '', phone: '' });
+      }
+      while (newParticipants.length > numCount) {
+        newParticipants.pop();
+      }
+      return {
+        ...prev,
+        numberOfParticipants: numCount,
+        participants: newParticipants
+      };
+    });
+  };
+
+  const handleParticipantChange = (index, field, value) => {
+    setTeamForm(prev => ({
+      ...prev,
+      participants: prev.participants.map((p, i) => 
+        i === index ? { ...p, [field]: value } : p
+      )
+    }));
   };
 
   const formatDate = (dateString) => {
@@ -200,7 +291,7 @@ const EventDetails = () => {
                     <div>
                       <p className="font-medium">Participants</p>
                       <p className="text-gray-600">
-                        {event.currentParticipants} / {event.maxParticipants}
+                        {(event.currentParticipants || event.participantsCount || 0)} / {(event.maxParticipants || 0)}
                       </p>
                     </div>
                   </div>
@@ -259,20 +350,41 @@ const EventDetails = () => {
                 <div className="bg-gray-50 p-6 rounded-lg">
                   <div className="text-center mb-4">
                     <div className="text-2xl font-bold text-gray-900 mb-1">
-                      {event.currentParticipants < event.maxParticipants ? 'Join Event' : 'Event Full'}
+                      {(() => {
+                        const current = event.currentParticipants || event.participantsCount || 0;
+                        const max = event.maxParticipants || 0;
+                        // Only show "Event Full" if maxParticipants > 0 AND current >= max
+                        if (max > 0 && current >= max) {
+                          return 'Event Full';
+                        }
+                        return 'Join Event';
+                      })()}
                     </div>
-                    <div className="text-sm text-gray-600">
-                      {event.maxParticipants - event.currentParticipants} spots remaining
-                    </div>
+                    {(() => {
+                      const current = event.currentParticipants || event.participantsCount || 0;
+                      const max = event.maxParticipants || 0;
+                      const remaining = max > 0 ? max - current : 0;
+                      return (
+                        <div className="text-sm text-gray-600">
+                          {max > 0 ? `${remaining} spots remaining` : 'Unlimited spots'}
+                        </div>
+                      );
+                    })()}
                   </div>
 
-                  {event.currentParticipants < event.maxParticipants ? (
+                  {(() => {
+                    const current = event.currentParticipants || event.participantsCount || 0;
+                    const max = event.maxParticipants || 0;
+                    // Only disable if maxParticipants > 0 AND current >= max
+                    const isFull = max > 0 && current >= max;
+                    return !isFull;
+                  })() ? (
                     <button
-                      onClick={handleRegister}
+                      onClick={handleRegisterClick}
                       disabled={registering}
                       className="w-full px-4 py-3 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      {registering ? 'Registering...' : 'Register Now'}
+                      Register Now
                     </button>
                   ) : (
                     <button
@@ -327,6 +439,196 @@ const EventDetails = () => {
             </div>
           </div>
         </div>
+
+        {/* Registration Modal */}
+        {showRegistrationModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="p-6">
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-2xl font-bold text-gray-900">
+                    Register for {event.title}
+                  </h2>
+                  <button
+                    onClick={() => {
+                      setShowRegistrationModal(false);
+                      setError('');
+                    }}
+                    className="text-gray-400 hover:text-gray-600"
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+
+                {error && (
+                  <div className="mb-4 bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md">
+                    {error}
+                  </div>
+                )}
+
+                {/* Individual Event Registration */}
+                {(!event.isTeamEvent && event.type !== 'team') ? (
+                  <form onSubmit={handleIndividualRegister} className="space-y-4">
+                    <div>
+                      <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+                        Name *
+                      </label>
+                      <input
+                        type="text"
+                        id="name"
+                        required
+                        value={individualForm.name}
+                        onChange={(e) => setIndividualForm({ ...individualForm, name: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Enter your full name"
+                      />
+                    </div>
+
+                    <div>
+                      <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                        Email *
+                      </label>
+                      <input
+                        type="email"
+                        id="email"
+                        required
+                        value={individualForm.email}
+                        onChange={(e) => setIndividualForm({ ...individualForm, email: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Enter your email"
+                      />
+                    </div>
+
+                    <div>
+                      <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
+                        Phone Number *
+                      </label>
+                      <input
+                        type="tel"
+                        id="phone"
+                        required
+                        value={individualForm.phone}
+                        onChange={(e) => setIndividualForm({ ...individualForm, phone: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Enter your phone number"
+                      />
+                    </div>
+
+                    <div className="flex gap-4 pt-4">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowRegistrationModal(false);
+                          setError('');
+                        }}
+                        className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={registering}
+                        className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+                      >
+                        {registering ? 'Registering...' : 'Register'}
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  /* Team Event Registration */
+                  <form onSubmit={handleTeamRegister} className="space-y-4">
+                    <div>
+                      <label htmlFor="teamSize" className="block text-sm font-medium text-gray-700 mb-1">
+                        Number of Participants (Max: {event?.maxTeamSize || 5}) *
+                      </label>
+                      <input
+                        type="number"
+                        id="teamSize"
+                        required
+                        min="2"
+                        max={event?.maxTeamSize || 5}
+                        value={teamForm.numberOfParticipants}
+                        onChange={(e) => handleParticipantCountChange(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    </div>
+
+                    <div className="space-y-4 max-h-96 overflow-y-auto">
+                      {teamForm.participants.slice(0, teamForm.numberOfParticipants).map((participant, index) => (
+                        <div key={index} className="p-4 border border-gray-200 rounded-lg">
+                          <h3 className="font-medium text-gray-900 mb-3">Participant {index + 1}</h3>
+                          <div className="space-y-3">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Name *
+                              </label>
+                              <input
+                                type="text"
+                                required
+                                value={participant.name}
+                                onChange={(e) => handleParticipantChange(index, 'name', e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                                placeholder="Enter participant name"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Email *
+                              </label>
+                              <input
+                                type="email"
+                                required
+                                value={participant.email}
+                                onChange={(e) => handleParticipantChange(index, 'email', e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                                placeholder="Enter participant email"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Phone Number *
+                              </label>
+                              <input
+                                type="tel"
+                                required
+                                value={participant.phone}
+                                onChange={(e) => handleParticipantChange(index, 'phone', e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                                placeholder="Enter participant phone"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="flex gap-4 pt-4">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowRegistrationModal(false);
+                          setError('');
+                        }}
+                        className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={registering}
+                        className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+                      >
+                        {registering ? 'Registering...' : 'Register Team'}
+                      </button>
+                    </div>
+                  </form>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

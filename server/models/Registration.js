@@ -17,9 +17,26 @@ const registrationSchema = new mongoose.Schema(
       default: Date.now,
     },
     team: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Team",
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Team",
     },
+    // Individual registration details
+    registrationType: {
+      type: String,
+      enum: ["individual", "team"],
+      default: "individual",
+    },
+    participantDetails: {
+      name: String,
+      email: String,
+      phone: String,
+    },
+    // Team registration details
+    teamParticipants: [{
+      name: String,
+      email: String,
+      phone: String,
+    }],
   },
   { timestamps: true }
 );

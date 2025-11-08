@@ -99,12 +99,12 @@ const EventCard = ({ event }) => {
             {event.location || 'Location TBD'}
           </div>
 
-          {event.maxParticipants && (
+          {(event.maxParticipants > 0) && (
             <div className="flex items-center text-sm text-gray-500">
               <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M16 4c0-1.11.89-2 2-2s2 .89 2 2-.89 2-2 2-2-.89-2-2zm4 18v-6h2.5l-2.54-7.63A1.5 1.5 0 0 0 18.54 8H16c-.8 0-1.54.37-2 1l-3 4v7h2v7h3v-7h4z"/>
               </svg>
-              {event.currentParticipants || 0} / {event.maxParticipants} participants
+              {(event.currentParticipants || event.participantsCount || 0)} / {event.maxParticipants} participants
             </div>
           )}
         </div>

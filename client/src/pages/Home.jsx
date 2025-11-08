@@ -30,49 +30,13 @@ const Home = () => {
   const fetchEvents = async () => {
     try {
       setLoading(true);
+      setError('');
       const response = await eventService.getAllEvents();
       setEvents(response.events || []);
     } catch (err) {
+      console.error('Failed to fetch events:', err);
       setError(err.message || 'Failed to fetch events');
-      // For demo purposes, use mock data if API fails
-      setEvents([
-        {
-          _id: '1',
-          title: 'Tech Innovation Summit 2024',
-          description: 'Join us for the biggest tech event of the year featuring keynotes from industry leaders, networking opportunities, and hands-on workshops.',
-          type: 'individual',
-          status: 'upcoming',
-          startDate: '2024-11-15T09:00:00Z',
-          location: 'San Francisco Convention Center',
-          maxParticipants: 500,
-          currentParticipants: 234,
-          organizer: { name: 'TechCorp Events', email: 'events@techcorp.com' }
-        },
-        {
-          _id: '2',
-          title: 'Startup Pitch Competition',
-          description: 'Compete with innovative startups for a chance to win $50,000 in funding. Teams of 3-5 members required.',
-          type: 'team',
-          status: 'upcoming',
-          startDate: '2024-11-22T14:00:00Z',
-          location: 'Innovation Hub Downtown',
-          maxParticipants: 100,
-          currentParticipants: 67,
-          organizer: { name: 'Startup Accelerator', email: 'info@startupaccel.com' }
-        },
-        {
-          _id: '3',
-          title: 'AI/ML Workshop Series',
-          description: 'Learn the fundamentals of artificial intelligence and machine learning through hands-on projects and expert guidance.',
-          type: 'individual',
-          status: 'ongoing',
-          startDate: '2024-10-20T10:00:00Z',
-          location: 'Virtual Event',
-          maxParticipants: 200,
-          currentParticipants: 156,
-          organizer: { name: 'AI Learning Institute', email: 'workshops@ailearn.org' }
-        }
-      ]);
+      setEvents([]); // Set empty array instead of mock data
     } finally {
       setLoading(false);
     }

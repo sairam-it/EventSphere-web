@@ -24,7 +24,7 @@ export const eventService = {
   // Create new event (admin only)
   createEvent: async (eventData) => {
     try {
-      const response = await api.post('/events', eventData);
+      const response = await api.post('/events/create', eventData);
       return response.data;
     } catch (error) {
       throw error.response?.data || { message: 'Failed to create event' };
