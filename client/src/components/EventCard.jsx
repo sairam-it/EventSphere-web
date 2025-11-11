@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 
-const EventCard = ({ event, manageActions = false, onEdit, onDelete }) => {
+const EventCard = ({ event, manageActions = false, onEdit, onDelete, onViewRegistrations }) => {
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', {
@@ -126,21 +126,30 @@ const EventCard = ({ event, manageActions = false, onEdit, onDelete }) => {
 
         {/* Actions */}
         {manageActions ? (
-          <div className="flex gap-3">
+          <div className="space-y-3">
             <button
               type="button"
-              onClick={() => onEdit && onEdit(event)}
-              className="flex-1 px-4 py-2 bg-yellow-600 text-white font-medium rounded-md hover:bg-yellow-700 transition-colors"
+              onClick={() => onViewRegistrations && onViewRegistrations(event)}
+              className="w-full px-4 py-2 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 transition-colors"
             >
-              Edit
+              View Registrations
             </button>
-            <button
-              type="button"
-              onClick={() => onDelete && onDelete(event)}
-              className="flex-1 px-4 py-2 bg-red-600 text-white font-medium rounded-md hover:bg-red-700 transition-colors"
-            >
-              Delete
-            </button>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => onEdit && onEdit(event)}
+                className="flex-1 px-4 py-2 bg-yellow-600 text-white font-medium rounded-md hover:bg-yellow-700 transition-colors"
+              >
+                Edit
+              </button>
+              <button
+                type="button"
+                onClick={() => onDelete && onDelete(event)}
+                className="flex-1 px-4 py-2 bg-red-600 text-white font-medium rounded-md hover:bg-red-700 transition-colors"
+              >
+                Delete
+              </button>
+            </div>
           </div>
         ) : (
           <Link

@@ -32,6 +32,7 @@ const registrationSchema = new mongoose.Schema(
       phone: String,
     },
     // Team registration details
+    teamName: String,
     teamParticipants: [{
       name: String,
       email: String,

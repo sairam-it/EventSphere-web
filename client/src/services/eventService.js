@@ -89,5 +89,15 @@ export const eventService = {
     } catch (error) {
       throw error.response?.data || { message: 'Failed to fetch participated events' };
     }
+  },
+
+  // Get event registrations (host only)
+  getEventRegistrations: async (eventId) => {
+    try {
+      const response = await api.get(`/events/${eventId}/registrations`);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || { message: 'Failed to fetch event registrations' };
+    }
   }
 };

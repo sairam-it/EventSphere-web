@@ -8,7 +8,13 @@ export const registerForEvent = async (req, res) => {
     const userId = req.user.id; // from auth middleware
     const { eventId, id } = req.params; // Support both :eventId and :id route params
     const actualEventId = eventId || id;
-    const { type, name, email, phone, numberOfParticipants, participants } = req.body;
+    const { type, name, email, phone, numberOfParticipants, participants, teamName } = req.body;
+    
+    // Phone validation helper
+    const validatePhoneNumber = (phoneNum) => {
+      const phoneDigits = String(phoneNum).replace(/\D/g, '');
+      return phoneDigits.length === 10;
+    };
 
     // Check if event exists
     const event = await Event.findById(actualEventId);
@@ -31,6 +37,11 @@ export const registerForEvent = async (req, res) => {
     if (type === 'individual' || !type) {
       if (!name || !email || !phone) {
         return res.status(400).json({ message: "Name, email, and phone are required for individual registration." });
+      }
+
+      // Validate phone number (exactly 10 digits)
+      if (!validatePhoneNumber(phone)) {
+        return res.status(400).json({ message: "Phone number must be exactly 10 digits." });
       }
 
       // Check if event is full
@@ -61,6 +72,11 @@ export const registerForEvent = async (req, res) => {
     } 
     // Handle team registration
     else if (type === 'team') {
+      // Validate team name
+      if (!teamName || !teamName.trim()) {
+        return res.status(400).json({ message: "Team name is required." });
+      }
+
       if (!participants || !Array.isArray(participants) || participants.length === 0) {
         return res.status(400).json({ message: "Team participants are required." });
       }
@@ -75,6 +91,12 @@ export const registerForEvent = async (req, res) => {
         return res.status(400).json({ message: "All participants must have name, email, and phone." });
       }
 
+      // Validate all phone numbers (exactly 10 digits)
+      const invalidPhones = participants.filter(p => !validatePhoneNumber(p.phone));
+      if (invalidPhones.length > 0) {
+        return res.status(400).json({ message: "All phone numbers must be exactly 10 digits." });
+      }
+
       // Check if event has capacity for team
       const teamSize = participants.length;
       if (event.maxParticipants && (event.participantsCount + teamSize) > event.maxParticipants) {
@@ -86,7 +108,7 @@ export const registerForEvent = async (req, res) => {
       
       const teamCode = nanoid(6);
       const team = await Team.create({
-        name: `Team ${teamCode}`,
+        name: teamName.trim(),
         leader: userId,
         members: [userId], // Initially just the leader
         event: actualEventId,
@@ -99,6 +121,7 @@ export const registerForEvent = async (req, res) => {
         event: actualEventId,
         registrationType: 'team',
         team: team._id,
+        teamName: teamName.trim(),
         teamParticipants: participants,
       });
 
@@ -154,5 +177,58 @@ export const getMyRegistrations = async (req, res) => {
     res.json({ events: registrations.map((r) => r.event) });
   } catch (error) {
     res.status(500).json({ message: "Error fetching registrations", error: error.message });
+  }
+};
+
+// 📋 Get event registrations (host only)
+export const getEventRegistrations = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { eventId, id } = req.params;
+    const actualEventId = eventId || id;
+
+    // Check if event exists
+    const event = await Event.findById(actualEventId);
+    if (!event) {
+      return res.status(404).json({ message: "Event not found" });
+    }
+
+    // Check if user is the event host
+    if (event.createdBy.toString() !== userId) {
+      return res.status(403).json({ message: "Only the event host can view registrations." });
+    }
+
+    // Get all registrations for this event
+    const registrations = await Registration.find({ event: actualEventId })
+      .populate("user", "name email")
+      .sort({ registeredAt: -1 });
+
+    // Format registrations for frontend
+    const formattedRegistrations = registrations.map(reg => {
+      if (reg.registrationType === 'individual') {
+        return {
+          id: reg._id,
+          type: 'individual',
+          name: reg.participantDetails?.name || reg.user?.name,
+          email: reg.participantDetails?.email || reg.user?.email,
+          phone: reg.participantDetails?.phone,
+          registeredAt: reg.registeredAt,
+        };
+      } else {
+        // Team registration - return team info and all participants
+        return {
+          id: reg._id,
+          type: 'team',
+          teamName: reg.teamName,
+          participants: reg.teamParticipants || [],
+          registeredAt: reg.registeredAt,
+        };
+      }
+    });
+
+    res.status(200).json({ registrations: formattedRegistrations });
+  } catch (error) {
+    console.error('Get event registrations error:', error);
+    res.status(500).json({ message: "Error fetching event registrations", error: error.message });
   }
 };

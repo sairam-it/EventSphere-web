@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { eventService } from '../services/eventService';
 import EventCard from '../components/EventCard';
 import LoadingSpinner from '../components/LoadingSpinner';
+import RegistrationsModal from '../components/RegistrationsModal';
 
 const Dashboard = () => {
   const { user, isAdmin } = useAuth();
@@ -13,6 +14,8 @@ const Dashboard = () => {
   const [participatedEvents, setParticipatedEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [selectedEvent, setSelectedEvent] = useState(null);
+  const [showRegistrationsModal, setShowRegistrationsModal] = useState(false);
 
   useEffect(() => {
     fetchDashboardData();
@@ -65,6 +68,11 @@ const Dashboard = () => {
 
   const handleEditEvent = (event) => {
     navigate(`/events/${event._id || event.id}/edit`);
+  };
+
+  const handleViewRegistrations = (event) => {
+    setSelectedEvent(event);
+    setShowRegistrationsModal(true);
   };
 
   const tabs = [
@@ -217,6 +225,7 @@ const Dashboard = () => {
                     manageActions={activeTab === 'hosted'}
                     onEdit={handleEditEvent}
                     onDelete={handleDeleteEvent}
+                    onViewRegistrations={handleViewRegistrations}
                   />
                 ))}
               </div>
@@ -224,6 +233,18 @@ const Dashboard = () => {
           </div>
         </div>
       </div>
+
+      {/* Registrations Modal */}
+      {selectedEvent && (
+        <RegistrationsModal
+          event={selectedEvent}
+          isOpen={showRegistrationsModal}
+          onClose={() => {
+            setShowRegistrationsModal(false);
+            setSelectedEvent(null);
+          }}
+        />
+      )}
     </div>
   );
 };

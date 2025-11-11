@@ -23,12 +23,19 @@ const EventDetails = () => {
   
   // Team registration form data
   const [teamForm, setTeamForm] = useState({
+    teamName: '',
     numberOfParticipants: 2,
     participants: [
       { name: '', email: '', phone: '' },
       { name: '', email: '', phone: '' }
     ]
   });
+  
+  // Phone validation helper
+  const validatePhone = (phone) => {
+    const phoneDigits = phone.replace(/\D/g, '');
+    return phoneDigits.length === 10;
+  };
 
   useEffect(() => {
     fetchEvent();
@@ -72,6 +79,12 @@ const EventDetails = () => {
       return;
     }
 
+    // Validate phone number (exactly 10 digits)
+    if (!validatePhone(individualForm.phone)) {
+      setError('Phone number must be exactly 10 digits');
+      return;
+    }
+
     setRegistering(true);
     setError('');
     try {
@@ -101,10 +114,32 @@ const EventDetails = () => {
   const handleTeamRegister = async (e) => {
     e.preventDefault();
     
+    // Validate team name
+    if (!teamForm.teamName || !teamForm.teamName.trim()) {
+      setError('Team name is required');
+      return;
+    }
+    
     // Validate all participants have required fields
     const isValid = teamForm.participants.every(p => p.name && p.email && p.phone);
     if (!isValid) {
       setError('Please fill in all participant details');
+      return;
+    }
+
+    // Validate all phone numbers (exactly 10 digits)
+    const phoneValidationErrors = teamForm.participants
+      .slice(0, teamForm.numberOfParticipants)
+      .map((p, index) => {
+        if (!validatePhone(p.phone)) {
+          return `Participant ${index + 1} phone number must be exactly 10 digits`;
+        }
+        return null;
+      })
+      .filter(Boolean);
+    
+    if (phoneValidationErrors.length > 0) {
+      setError(phoneValidationErrors[0]);
       return;
     }
 
@@ -118,6 +153,7 @@ const EventDetails = () => {
     try {
       await eventService.registerForEvent(id, {
         type: 'team',
+        teamName: teamForm.teamName.trim(),
         numberOfParticipants: teamForm.numberOfParticipants,
         participants: teamForm.participants.slice(0, teamForm.numberOfParticipants)
       });
@@ -128,6 +164,7 @@ const EventDetails = () => {
       }));
       setShowRegistrationModal(false);
       setTeamForm({
+        teamName: '',
         numberOfParticipants: 2,
         participants: [
           { name: '', email: '', phone: '' },
@@ -509,11 +546,18 @@ const EventDetails = () => {
                         type="tel"
                         id="phone"
                         required
+                        maxLength={10}
                         value={individualForm.phone}
-                        onChange={(e) => setIndividualForm({ ...individualForm, phone: e.target.value })}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/\D/g, '').slice(0, 10);
+                          setIndividualForm({ ...individualForm, phone: value });
+                        }}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        placeholder="Enter your phone number"
+                        placeholder="Enter 10-digit phone number"
                       />
+                      {individualForm.phone && !validatePhone(individualForm.phone) && (
+                        <p className="text-xs text-red-600 mt-1">Phone number must be exactly 10 digits</p>
+                      )}
                     </div>
 
                     <div className="flex gap-4 pt-4">
@@ -539,6 +583,21 @@ const EventDetails = () => {
                 ) : (
                   /* Team Event Registration */
                   <form onSubmit={handleTeamRegister} className="space-y-4">
+                    <div>
+                      <label htmlFor="teamName" className="block text-sm font-medium text-gray-700 mb-1">
+                        Team Name *
+                      </label>
+                      <input
+                        type="text"
+                        id="teamName"
+                        required
+                        value={teamForm.teamName}
+                        onChange={(e) => setTeamForm({ ...teamForm, teamName: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Enter your team name"
+                      />
+                    </div>
+                    
                     <div>
                       <label htmlFor="teamSize" className="block text-sm font-medium text-gray-700 mb-1">
                         Number of Participants (Max: {event?.maxTeamSize || 5}) *
@@ -593,11 +652,18 @@ const EventDetails = () => {
                               <input
                                 type="tel"
                                 required
+                                maxLength={10}
                                 value={participant.phone}
-                                onChange={(e) => handleParticipantChange(index, 'phone', e.target.value)}
+                                onChange={(e) => {
+                                  const value = e.target.value.replace(/\D/g, '').slice(0, 10);
+                                  handleParticipantChange(index, 'phone', value);
+                                }}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
-                                placeholder="Enter participant phone"
+                                placeholder="Enter 10-digit phone number"
                               />
+                              {participant.phone && !validatePhone(participant.phone) && (
+                                <p className="text-xs text-red-600 mt-1">Phone number must be exactly 10 digits</p>
+                              )}
                             </div>
                           </div>
                         </div>
