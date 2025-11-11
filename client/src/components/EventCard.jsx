@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 
-const EventCard = ({ event }) => {
+const EventCard = ({ event, manageActions = false, onEdit, onDelete }) => {
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', {
@@ -124,13 +124,32 @@ const EventCard = ({ event }) => {
           </div>
         </div>
 
-        {/* Action Button */}
-        <Link
-          to={`/events/${event._id || event.id}`}
-          className="block w-full text-center px-4 py-2 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 transition-colors"
-        >
-          View Details
-        </Link>
+        {/* Actions */}
+        {manageActions ? (
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={() => onEdit && onEdit(event)}
+              className="flex-1 px-4 py-2 bg-yellow-600 text-white font-medium rounded-md hover:bg-yellow-700 transition-colors"
+            >
+              Edit
+            </button>
+            <button
+              type="button"
+              onClick={() => onDelete && onDelete(event)}
+              className="flex-1 px-4 py-2 bg-red-600 text-white font-medium rounded-md hover:bg-red-700 transition-colors"
+            >
+              Delete
+            </button>
+          </div>
+        ) : (
+          <Link
+            to={`/events/${event._id || event.id}`}
+            className="block w-full text-center px-4 py-2 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 transition-colors"
+          >
+            View Details
+          </Link>
+        )}
       </div>
     </div>
   );

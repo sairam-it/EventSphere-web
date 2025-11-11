@@ -6,6 +6,8 @@ import {
   getEventById,
   getHostedEvents,
   getParticipatedEvents,
+  updateEvent,
+  deleteEvent,
 } from "../controllers/eventController.js";
 import { registerForEvent } from "../controllers/registrationController.js";
 import { protect } from "../middleware/authMiddleware.js";
@@ -26,6 +28,12 @@ router.get("/hosted", protect, getHostedEvents);
 
 // Get participated events
 router.get("/participated", protect, getParticipatedEvents);
+
+// Update event (host only)
+router.put("/:id", protect, updateEvent);
+
+// Delete event (host only)
+router.delete("/:id", protect, deleteEvent);
 
 // Register for event
 router.post("/:id/register", protect, registerForEvent);

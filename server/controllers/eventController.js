@@ -5,11 +5,11 @@ import Registration from "../models/Registration.js";
 // 🟢 Create Event (only organizers or admins)
 export const createEvent = async (req, res) => {
   try {
-    const { 
-      title, 
-      description, 
-      date, 
-      location, 
+    const {
+      title,
+      description,
+      date,
+      location,
       category,
       maxParticipants,
       isTeamEvent,
@@ -180,6 +180,91 @@ export const getParticipatedEvents = async (req, res) => {
       });
     
     res.status(200).json({ events });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+// ✏️ Update event (only host/creator)
+export const updateEvent = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+
+    const event = await Event.findById(id);
+    if (!event) {
+      return res.status(404).json({ message: "Event not found" });
+    }
+
+    if (event.createdBy.toString() !== userId) {
+      return res.status(403).json({ message: "Only the host can update this event" });
+    }
+
+    const {
+      title,
+      description,
+      date,
+      location,
+      category,
+      maxParticipants,
+      isTeamEvent,
+      maxTeamSize,
+      noOfGirls,
+      noOfBoys,
+      requirements,
+      tags,
+    } = req.body;
+
+    // Apply only fields provided
+    if (title !== undefined) event.title = title;
+    if (description !== undefined) event.description = description;
+    if (date !== undefined) event.date = date;
+    if (location !== undefined) event.location = location;
+    if (category !== undefined) event.category = category;
+    if (maxParticipants !== undefined) event.maxParticipants = parseInt(maxParticipants) || 0;
+    if (isTeamEvent !== undefined) event.isTeamEvent = isTeamEvent;
+    if (maxTeamSize !== undefined) event.maxTeamSize = parseInt(maxTeamSize) || event.maxTeamSize;
+    if (noOfGirls !== undefined) event.noOfGirls = parseInt(noOfGirls) || 0;
+    if (noOfBoys !== undefined) event.noOfBoys = parseInt(noOfBoys) || 0;
+    if (Array.isArray(requirements)) event.requirements = requirements;
+    if (Array.isArray(tags)) event.tags = tags;
+
+    const updated = await event.save();
+
+    // Format for frontend
+    const formattedEvent = {
+      ...updated.toObject(),
+      type: updated.isTeamEvent ? 'team' : 'individual',
+      currentParticipants: updated.participantsCount || 0,
+      startDate: updated.date,
+    };
+
+    res.status(200).json({ message: "Event updated successfully", event: formattedEvent });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+// 🗑️ Delete event (only host/creator)
+export const deleteEvent = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+
+    const event = await Event.findById(id);
+    if (!event) {
+      return res.status(404).json({ message: "Event not found" });
+    }
+
+    if (event.createdBy.toString() !== userId) {
+      return res.status(403).json({ message: "Only the host can delete this event" });
+    }
+
+    await Registration.deleteMany({ event: id });
+    await EventRole.deleteMany({ eventId: id });
+    await event.deleteOne();
+
+    res.status(200).json({ message: "Event deleted successfully" });
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
   }

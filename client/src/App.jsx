@@ -47,6 +47,11 @@ const App = () => {
                       <CreateEvent />
                     </ProtectedRoute>
                   } />
+                  <Route path="/events/:id/edit" element={
+                    <ProtectedRoute>
+                      <CreateEvent />
+                    </ProtectedRoute>
+                  } />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </main>

@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { eventService } from '../services/eventService';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 const CreateEvent = () => {
   const navigate = useNavigate();
+  const { id: eventId } = useParams();
+  const isEdit = Boolean(eventId);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [formData, setFormData] = useState({
@@ -29,6 +31,36 @@ const CreateEvent = () => {
     });
     if (error) setError('');
   };
+
+  useEffect(() => {
+    const loadEvent = async () => {
+      if (!isEdit) return;
+      try {
+        setLoading(true);
+        const res = await eventService.getEventById(eventId);
+        const ev = res.event;
+        setFormData({
+          title: ev.title || '',
+          description: ev.description || '',
+          type: (ev.type && ev.type.toLowerCase() === 'team') || ev.isTeamEvent ? 'team' : 'individual',
+          startDate: ev.startDate ? new Date(ev.startDate).toISOString().slice(0, 16) : '',
+          endDate: '', // not used by backend
+          location: ev.location || '',
+          maxParticipants: ev.maxParticipants?.toString() || '',
+          maxTeamSize: ev.maxTeamSize?.toString() || '',
+          noOfGirls: (ev.noOfGirls ?? '').toString(),
+          noOfBoys: (ev.noOfBoys ?? '').toString(),
+          requirements: Array.isArray(ev.requirements) ? ev.requirements.join('\n') : '',
+          tags: Array.isArray(ev.tags) ? ev.tags.join(', ') : ''
+        });
+      } catch (err) {
+        setError(err.message || 'Failed to load event');
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadEvent();
+  }, [isEdit, eventId]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -58,13 +90,17 @@ const CreateEvent = () => {
         })
       };
 
-      const response = await eventService.createEvent(eventData);
+      if (isEdit) {
+        await eventService.updateEvent(eventId, eventData);
+      } else {
+        await eventService.createEvent(eventData);
+      }
       // Navigate to dashboard after successful creation
       // Dashboard will automatically refresh and show the new event
       navigate('/dashboard');
     } catch (err) {
-      console.error('Create event error:', err);
-      setError(err.message || 'Failed to create event. Please check all required fields.');
+      console.error(isEdit ? 'Update event error:' : 'Create event error:', err);
+      setError(err.message || (isEdit ? 'Failed to update event.' : 'Failed to create event. Please check all required fields.'));
     } finally {
       setLoading(false);
     }
@@ -73,7 +109,7 @@ const CreateEvent = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <LoadingSpinner text="Creating your event..." />
+        <LoadingSpinner text={isEdit ? "Loading event..." : "Creating your event..."} />
       </div>
     );
   }
@@ -83,8 +119,8 @@ const CreateEvent = () => {
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-white rounded-lg shadow-sm border border-gray-200">
           <div className="px-6 py-4 border-b border-gray-200">
-            <h1 className="text-2xl font-bold text-gray-900">Create New Event</h1>
-            <p className="text-gray-600 mt-1">Fill in the details to create your event</p>
+            <h1 className="text-2xl font-bold text-gray-900">{isEdit ? 'Edit Event' : 'Create New Event'}</h1>
+            <p className="text-gray-600 mt-1">{isEdit ? 'Update your event details' : 'Fill in the details to create your event'}</p>
           </div>
 
           <form onSubmit={handleSubmit} className="p-6 space-y-6">
@@ -333,7 +369,7 @@ const CreateEvent = () => {
                 disabled={loading}
                 className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                {loading ? 'Creating Event...' : 'Create Event'}
+                {loading ? (isEdit ? 'Saving Changes...' : 'Creating Event...') : (isEdit ? 'Save Changes' : 'Create Event')}
               </button>
             </div>
           </form>

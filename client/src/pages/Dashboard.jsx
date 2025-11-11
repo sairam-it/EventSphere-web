@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { eventService } from '../services/eventService';
 import EventCard from '../components/EventCard';
@@ -7,6 +7,7 @@ import LoadingSpinner from '../components/LoadingSpinner';
 
 const Dashboard = () => {
   const { user, isAdmin } = useAuth();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('participated');
   const [hostedEvents, setHostedEvents] = useState([]);
   const [participatedEvents, setParticipatedEvents] = useState([]);
@@ -49,6 +50,21 @@ const Dashboard = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleDeleteEvent = async (event) => {
+    const confirmed = window.confirm('Are you sure you want to delete this event? This action cannot be undone.');
+    if (!confirmed) return;
+    try {
+      await eventService.deleteEvent(event._id || event.id);
+      setHostedEvents(prev => prev.filter(e => (e._id || e.id) !== (event._id || event.id)));
+    } catch (err) {
+      alert(err.message || 'Failed to delete event');
+    }
+  };
+
+  const handleEditEvent = (event) => {
+    navigate(`/events/${event._id || event.id}/edit`);
   };
 
   const tabs = [
@@ -195,7 +211,13 @@ const Dashboard = () => {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {currentEvents.map(event => (
-                  <EventCard key={event._id || event.id} event={event} />
+                  <EventCard
+                    key={event._id || event.id}
+                    event={event}
+                    manageActions={activeTab === 'hosted'}
+                    onEdit={handleEditEvent}
+                    onDelete={handleDeleteEvent}
+                  />
                 ))}
               </div>
             )}
